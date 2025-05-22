@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  idm-vton-api:
+    build: .
+    container_name: idm-vton-api
+    ports:
+      - "8000:8000"  # FastAPI
+      - "7860:7860"  # Gradio
+    environment:
+      - SERVICE_MODE=api  # Options: api, gradio, both, shell
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      - ./outputs:/workspace/outputs
+      - ./models:/workspace/models  # Optional: persistent model storage
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    
+  idm-vton-gradio:
+    build: .
+    container_name: idm-vton-gradio
+    ports:
+      - "7861:7860"  # Gradio on different port
+    environment:
+      - SERVICE_MODE=gradio
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      - ./outputs:/workspace/outputs
+      - ./models:/workspace/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    profiles:
+      - gradio-only
+
+  idm-vton-both:
+    build: .
+    container_name: idm-vton-both
+    ports:
+      - "8001:8000"  # FastAPI
+      - "7862:7860"  # Gradio
+    environment:
+      - SERVICE_MODE=both
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      - ./outputs:/workspace/outputs
+      - ./models:/workspace/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    profiles:
+      - both
+
+volumes:
+  model_cache:
+    driver: local
